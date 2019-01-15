@@ -38,5 +38,8 @@ OSEL * os_init();
 OSEL * os_push(OPER  op, OSEL * top);
 OSEL * os_pop(OSEL * curr_top, OPER * ret);
 char * op_literal(OPER op);
+ASEL * processor(ASEL * as_top, OSEL * os_top);
+float process(float arg1, float arg2, OPER op);
+void parser(int cur_pos, int l_mark, char * str, ASEL ** as_top, OSEL ** os_top);
 
 #endif
