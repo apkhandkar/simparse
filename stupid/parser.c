@@ -37,14 +37,10 @@ OSEL * push_op(int pos, char * str, OSEL * top)
 {
   OPER op;
   switch(str[pos]) {
-    case '+': op = add;
-      break;
-    case '-': op = sub;
-       break;
-    case '*': op = mul;
-       break;
-    case '/': op = dvd;
-        break;
+    case '+': op = add; break;
+    case '-': op = sub; break;
+    case '*': op = mul; break;
+    case '/': op = dvd; break;
     default:  op = add;
   }
   OS_PUSH(top, op);
@@ -61,15 +57,18 @@ void parser(int cur_pos, int l_mark, char * str, ASEL ** as_top, OSEL ** os_top)
       return;
     case '+': case '-':
     case '/': case '*':
-      * as_top = push_arg((cur_pos-1), l_mark, str, *as_top);
-      * os_top = push_op(cur_pos, str, *os_top);
+      *as_top = push_arg((cur_pos-1), l_mark, str, *as_top);
+      *os_top = push_op(cur_pos, str, *os_top);
       parser((cur_pos+1), (cur_pos+1), str, as_top, os_top);
       return;
     case '$':
-      * as_top = push_arg((cur_pos-1), l_mark, str, *as_top);
+      *as_top = push_arg((cur_pos-1), l_mark, str, *as_top);
       return;
     default:
-      return;
+#ifdef VERBOSE
+      fprintf(stderr, "Invalid symbol: %c\n", str[cur_pos]);
+#endif
+      exit(-1);
   }
 }
 
