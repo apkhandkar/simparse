@@ -31,4 +31,11 @@ typedef struct token {
   struct token *next;
 } TOKEN;
 
+TOKEN * init_tokeniser();
+TOKEN * add_atoken(TOKEN * curr, float val);
+TOKEN * add_otoken(TOKEN * curr, SYM val);
+int chr_2_int(char c);
+TOKEN * push_arg(int i_end, int i_sta, char * str, TOKEN * curr_top);
+void tokenise(int cur_pos, int l_mark, char * str, TOKEN ** curr_top);
+
 #endif
