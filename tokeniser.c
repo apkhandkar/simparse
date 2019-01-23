@@ -1,137 +1,168 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include "tokeniser.h"
 
-TOKEN * init_tokeniser()
+token_t * init_tokeniser()
 {
-  TOKEN * tok = (TOKEN *)malloc(sizeof(TOKEN));
-  tok->is_head = 1;
+  token_t * tok = (token_t *)malloc(sizeof(token_t));
+
   tok->next = NULL;
-  
+
   return tok;
 }
 
-TOKEN * add_atoken(TOKEN * curr, float val)
+token_t * add_token(int ttype, int tval, token_t * curr)
 {
-  TOKEN * tok = (TOKEN *)malloc(sizeof(TOKEN));
+  token_t * tok = (token_t *)malloc(sizeof(token_t));
 
-  tok->is_head = 0;
-  tok->type = arg;
-  tok->arg = val;
-  curr->next = tok;
+  tok->ttype = ttype;
+  tok->tval = tval;
   tok->next = NULL;
+  curr->next = tok;
+
+  return tok;
+}
+
+sel_t * init_stack()
+{
+  sel_t * el = (sel_t *)malloc(sizeof(sel_t));
+
+  el->bos = TRUE;
+
+  return el;
+}
+
+sel_t * push_stack(int val, sel_t * tos)
+{
+  sel_t * el = (sel_t *)malloc(sizeof(sel_t));
+
+  el->bos = FALSE;
+  el->val = val;
+  el->next = tos;
+
+  return el;
+}
+
+sel_t * pop_stack(int * val, sel_t * tos)
+{
+  *val = tos->val;
+  
+  sel_t * new_tos = tos->next;
+  free(tos);
+
+  return new_tos;
+}
+
+sel_t * add_argtok(sel_t * tos, token_t ** head)
+{
+  if(tos->bos==TRUE) {
+    // nothing to add here
+    return tos;
+  } else {
+    // add argument to token list, empty the stack
+    int ret = 0;
+    int p = 0;
+    int arg = 0;
+    while(tos->bos != TRUE) {
+      POP_STACK(ret, tos);
+      arg += ret * pow(10,p);
+      p++;
+    }
+    ADD_TOKEN(T_ARG, arg, *head);
+    return tos;
+  }
+}
+
+token_t * tokenise(char * expr, token_t * head)
+{
+  sel_t * tos = init_stack();
+
+  for(int i=0; i<strlen(expr); i++) {
+    switch(expr[i]) {
+      // encountered a digit, push it on the 'to-be-added' argstack
+      case '0': case '1': case '2':
+      case '3': case '4': case '5':
+      case '6': case '7': case '8':
+      case '9': PUSH_STACK((expr[i]-'0'), tos);
+                break;
+      // encountered a symbol, add any arguments on the 'to-be-added' stack that haven't 
+      // beeen added yet to token list. Then, add the symbol to the token list 
+      case '+': case '-': case '*':
+      case '/': case '^': case '(':
+      case ')': tos = add_argtok(tos, &head);
+                head = add_token(T_SYM, expr[i], head);
+                break;
+      // encountered end of string - add any arguments on the 'to-be-added' stack that
+      // haven't been added to the token list
+      case '$': tos = add_argtok(tos, &head);
+                break;
+      // encountered some invalid character
+      default:  fprintf(stderr, "ERROR: Encountered invalid symbol %c (%d)\n", expr[i], expr[i]);
+                exit(-1);
+    }
+  }
+  
+  return head;
+}
+
 
 #ifdef DEBUG
-  printf("Added (argument) token: %f\n", tok->arg);
+void print_tokens(token_t * head)
+{
+  head = head->next;
+
+  while(head!=NULL) {
+    if(head->ttype==T_SYM) {
+      switch(head->tval) {
+        case S_ADD:   printf("Symbol: +\n");
+                      break;
+        case S_SUB:   printf("Symbol: -\n");
+                      break;
+        case S_MUL:   printf("Symbol: *\n");
+                      break;
+        case S_DIV:   printf("Symbol: /\n");
+                      break;
+        case S_POW:   printf("Symbol: ^\n");
+                      break;
+        case S_LTP:   printf("Symbol: (\n");
+                      break;
+        case S_RTP:   printf("Symbol: )\n");
+                      break;
+        default:      printf("Unrecognised symbol\n");
+      }
+    } else if(head->ttype==T_ARG) {
+      printf("Argument: %d\n", head->tval);
+    } else {
+      printf("Unrecognised token type\n");
+    }
+    head = head->next;
+  }
+}
+
+sel_t * empty_stack(sel_t * tos)
+{
+  int val;
+  
+  while(tos->bos != TRUE) {
+    POP_STACK(val, tos);
+    printf("Popped value: %d\n", val);
+  }
+
+  return tos;
+}
 #endif
 
-  return tok;
-}
-
-TOKEN * add_otoken(TOKEN * curr, SYM val)
+/*
+int main()
 {
-  TOKEN * tok = (TOKEN *)malloc(sizeof(TOKEN));
+  token_t * head = init_tokeniser();
+  token_t * curr = head;
 
-  tok->is_head = 0;
-  tok->type = sym;
-  tok->sym = val;
-  curr->next = tok;
-  tok->next = NULL;
+  char * expr = "12*(12^10)+10-9*((54+20)/10)$";
 
-  return tok;
+  curr = tokenise(expr, curr); 
+#ifdef DEBUG
+  print_tokens(head);
+#endif
+
+  return 0;
 }
-
-
-int chr_2_int(char c)
-{
-  switch(c) {
-    case '0': return 0; case '1': return 1;
-    case '2': return 2; case '3': return 3;
-    case '4': return 4; case '5': return 5;
-    case '6': return 6; case '7': return 7;
-    case '8': return 8; case '9': return 9;
-    default:  fprintf(stderr, "Invalid symbol"); exit(-1);
-  }
-}
-
-
-TOKEN * push_arg(int i_end, int i_sta, char * str, TOKEN * curr_top)
-{
-  int numlen = (i_end-i_sta);
-  int arg = 0;
-
-  if( str[i_sta]=='-' ||  str[i_sta]=='+' ||
-      str[i_sta]=='*' ||  str[i_sta]=='/' ||
-      str[i_sta]=='(' ||  str[i_sta]==')' ) {
-    fprintf(stderr, "ERROR: Parser encountered unexpected symbol %c\n", str[i_sta]);
-    fprintf(stderr, "Halting Execution\n");
-    exit(-1);
-  }
-
-  for(int i=i_sta; i<=i_end; i++) {
-    printf("pusher... %c\n", str[i]);
-    arg += (pow(10,numlen) * chr_2_int(str[i]));
-    numlen--;
-  }
-
-  ADD_ATOKEN(curr_top, arg);
-  return curr_top;
-}
-
-void tokenise(int cur_pos, int l_mark, char * str, TOKEN ** curr_top) 
-{
-  SYM got_sym;
-  int dec; 
-
-  switch(str[cur_pos]) {
-    case '0': case '1': case '2':
-    case '3': case '4': case '5':
-    case '6': case '7': case '8':
-    case '9': dec = TOKENISE_CASE_NUM; 
-              break;
-    case '+': dec = TOKENISE_CASE_SYM;
-              got_sym = add;
-              break;
-    case '-': dec = TOKENISE_CASE_SYM;
-              got_sym = sub;
-              break;
-    case '*': dec = TOKENISE_CASE_SYM;
-              got_sym = mul;
-              break;
-    case '/': dec = TOKENISE_CASE_SYM;
-              got_sym = dvd;
-              break;
-    case '(': dec = TOKENISE_CASE_SYM;
-              got_sym = ltp;
-              break;
-    case ')': dec = TOKENISE_CASE_SYM;
-              got_sym = rtp;
-              break;
-    case '$': dec = TOKENISE_CASE_EOE;
-              break;
-    default:  dec = TOKENISE_CASE_ERR;
-              break;
-  }
-
-  if(dec==TOKENISE_CASE_NUM) { 
-    tokenise((cur_pos+1), l_mark, str, curr_top);
-  } else if(dec==TOKENISE_CASE_SYM) {
-    *curr_top = push_arg((cur_pos-1), l_mark, str, *curr_top);
-    ADD_OTOKEN(*curr_top, got_sym);
-    tokenise((cur_pos+1), (cur_pos+1), str, curr_top);
-  } else if(dec==TOKENISE_CASE_EOE) {
-    *curr_top = push_arg((cur_pos-1), l_mark, str, *curr_top);
-  } else if(dec==TOKENISE_CASE_ERR) {
-    fprintf(stderr, "ERROR: Parser Encountered unexpected symbol: %c (%d)\n", str[cur_pos], str[cur_pos]);
-    fprintf(stderr, "Halting Execution\n");
-    exit(-1);
-  } else {
-    fprintf(stderr, "ERROR: Parser couldn't read symbol\n");
-    fprintf(stderr, "Halting Execution\n");
-    exit(-1);
-  }
-
-  return;
-}
-
+*/

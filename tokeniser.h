@@ -1,41 +1,51 @@
 #ifndef TOKENISER_H
 #define TOKENISER_H
 
-#define ADD_ATOKEN(c,v) c = add_atoken(c,v);
-#define ADD_OTOKEN(c,v) c = add_otoken(c,v);
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
 
-#define TOKENISE_CASE_NUM 1
-#define TOKENISE_CASE_SYM 2
-#define TOKENISE_CASE_EOE 3
-#define TOKENISE_CASE_ERR 4
+#define FALSE 0
+#define TRUE  1
 
-typedef enum tok_type {
-  arg,
-  sym
-} TOK_TYPE;
+#define T_SYM 0
+#define T_ARG 1
+#define S_ADD 43
+#define S_SUB 45
+#define S_MUL 42
+#define S_DIV 47
+#define S_POW 94
+#define S_LTP 40
+#define S_RTP 41
 
-typedef enum sym {
-  add,
-  sub,
-  mul,
-  dvd,
-  rtp,
-  ltp
-} SYM;
+#define ADD_TOKEN(t,v,c) c = add_token(t,v,c)
+#define PUSH_STACK(v,t) t = push_stack(v,t)
+#define POP_STACK(v,t) t = pop_stack(&v,t)
+#define STACK_IS_EMPTY(t) t->bos==1
 
 typedef struct token {
-  int is_head;
-  TOK_TYPE type;
-  float arg;
-  SYM sym;
-  struct token *next;
-} TOKEN;
+  int ttype;
+  int tval;
+  struct token * next;
+} token_t;
 
-TOKEN * init_tokeniser();
-TOKEN * add_atoken(TOKEN * curr, float val);
-TOKEN * add_otoken(TOKEN * curr, SYM val);
-int chr_2_int(char c);
-TOKEN * push_arg(int i_end, int i_sta, char * str, TOKEN * curr_top);
-void tokenise(int cur_pos, int l_mark, char * str, TOKEN ** curr_top);
+typedef struct sel {
+  int bos;
+  int val;
+  struct sel * next;
+} sel_t;
+
+token_t * init_tokeniser(void);
+token_t * add_token(int ttype, int tval, token_t * curr);
+sel_t * init_stack(void);
+sel_t * push_stack(int val, sel_t * tos);
+sel_t * pop_stack(int * val, sel_t * tos);
+sel_t * add_argtok(sel_t * tos, token_t ** head);
+token_t * tokenise(char * expr, token_t * head);
+#ifdef DEBUG
+void print_tokens(token_t * head);
+sel_t * empty_stack(sel_t * tos);
+#endif
 
 #endif
