@@ -111,23 +111,7 @@ void print_tokens(token_t * head)
 
   while(head!=NULL) {
     if(head->ttype==T_SYM) {
-      switch(head->tval) {
-        case S_ADD:   printf("Symbol: +\n");
-                      break;
-        case S_SUB:   printf("Symbol: -\n");
-                      break;
-        case S_MUL:   printf("Symbol: *\n");
-                      break;
-        case S_DIV:   printf("Symbol: /\n");
-                      break;
-        case S_POW:   printf("Symbol: ^\n");
-                      break;
-        case S_LTP:   printf("Symbol: (\n");
-                      break;
-        case S_RTP:   printf("Symbol: )\n");
-                      break;
-        default:      printf("Unrecognised symbol\n");
-      }
+      printf("Symbol: %c\n", (char)head->tval);
     } else if(head->ttype==T_ARG) {
       printf("Argument: %d\n", head->tval);
     } else {
